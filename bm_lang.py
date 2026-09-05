@@ -148,6 +148,7 @@ EN = {
     '中文': '中文',
     'English': 'English',
     '语言修改后需重启应用生效。': 'Language change takes effect after restarting the app.',
+    '保存后应用将自动重启以生效。': 'The app will restart automatically to apply the change.',
 }
 
 

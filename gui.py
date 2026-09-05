@@ -606,17 +606,18 @@ class App(tk.Tk):
         lang_row = ttk.Frame(frm)
         lang_row.grid(row=3, column=0, columnspan=3, sticky='w', pady=(10, 0))
         ttk.Label(lang_row, text=tr('语言：')).pack(side='left')
-        lang_var = tk.StringVar(value=lang.current_lang())
+        lang_var = tk.StringVar(value='English' if lang.current_lang() == 'en' else '中文')
         lang_box = ttk.Combobox(lang_row, textvariable=lang_var, values=['中文', 'English'],
                                 state='readonly', width=10)
         lang_box.pack(side='left', padx=(4, 0))
-        ttk.Label(lang_row, text=tr('语言修改后需重启应用生效。'),
+        ttk.Label(lang_row, text=tr('保存后应用将自动重启以生效。'),
                   foreground='#78909c').pack(side='left', padx=(10, 0))
 
         def save():
             rd = report_var.get().strip()
             bd = backup_var.get().strip()
             lg = 'zh' if lang_var.get() != 'English' else 'en'
+            changed = lg != lang.current_lang()
             if rd:
                 self.report_dir = rd
             if bd:
@@ -625,9 +626,27 @@ class App(tk.Tk):
                         'lang': lg}
             save_settings(settings)
             lang.set_lang(lg)
-            self.status.set(tr('设置已保存：报告→%s；备份→%s') % (self.report_dir, self.backup_dir))
             self._settings_open = False
             win.destroy()
+            if changed:
+                # restart the app so all UI text re-renders in the new language.
+                # Use after() so the restart happens outside the callback stack.
+                def _restart():
+                    try:
+                        self.destroy()
+                    except Exception:
+                        pass
+                    try:
+                        import sys as _sys
+                        if getattr(_sys, 'frozen', False):
+                            os.startfile(_sys.executable)
+                        else:
+                            subprocess.Popen([_sys.executable, os.path.abspath(__file__)])
+                    except Exception:
+                        pass
+                self.after(150, _restart)
+            else:
+                self.status.set(tr('设置已保存：报告→%s；备份→%s') % (self.report_dir, self.backup_dir))
 
         def cancel():
             self._settings_open = False
