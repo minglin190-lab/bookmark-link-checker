@@ -4,6 +4,10 @@
 
 绿色免安装的浏览器收藏夹失效链接检测工具，支持 Edge / Chrome，纯本地运行，不上传任何数据。支持 **Windows / macOS / Linux**。
 
+## 界面截图
+
+![Screenshot](screenshot.png)
+
 ## 功能
 
 - **一键检测**：自动读取 Edge / Chrome 收藏夹（或导入的 HTML 书签文件），32 线程并发检测，边检测边实时显示结果，不用等全部跑完

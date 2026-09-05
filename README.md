@@ -12,6 +12,12 @@ A green, portable browser bookmark dead-link checker for **Edge / Chrome**. Runs
 
 Works on **Windows / macOS / Linux**. Free, open source, no installation required.
 
+## Screenshot
+
+![Screenshot](screenshot.png)
+
+> Note: the UI is currently in **Simplified Chinese** (an English UI is planned). The app itself is easy to use — pick a browser, click **开始检测 (Start Check)**, and results appear live.
+
 ## Features
 
 - **One-click check**: reads Edge / Chrome bookmarks (or an imported HTML bookmarks file), checks with 32 threads in parallel, and shows results **live as they finish** — no need to wait for everything to complete
