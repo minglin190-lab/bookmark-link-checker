@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies (Windows / macOS)
         if: runner.os != 'Linux'
-        run: pip install pyinstaller requests
+        run: pip install pyinstaller requests pillow
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
