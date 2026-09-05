@@ -74,8 +74,6 @@ EN = {
     '连接不上，可能是反爬或网络，建议网页重开确认':
         'Cannot connect - may be anti-bot/network, verify in browser',
     '证书问题打不开（可能仅网页能开）': 'Cert problem (may open in browser)',
-    '超时，可能反爬或网络快徒，网页可能能开': 'Timeout - may open in browser',
-    '超时，可能反爬或网络快，网页可能能开': 'Timeout - may open in browser',
 
     # ---- messageboxes ----
     '读取收藏夹失败': 'Failed to read bookmarks',
@@ -95,7 +93,7 @@ EN = {
         'so they cannot be archived. Export a report to review instead.',
     '没有可归档的链接': 'Nothing to archive',
     '列表里没有“确定失效”的链接。': 'No confirmed-dead links in the list.',
-    '（另有 %d 条来自 HTML 导入的失效项不能归档，已跳过）':
+    '\n（另有 %d 条来自 HTML 导入的失效项不能归档，已跳过）':
         ' (%d dead links from HTML import skipped - cannot archive)',
     '确认归档': 'Confirm archive',
     '将把 %d 条“确定失效”的链接移动到收藏夹的“失效链接归档”文件夹。\n'
@@ -106,7 +104,6 @@ EN = {
     '%s 正在运行，退出前它可能把改动覆盖回去。\n建议先完全退出 %s 再归档。\n\n仍要现在继续吗？':
         '%s is running and may overwrite changes on exit.\n'
         'Please fully quit %s first. Continue anyway?',
-    '正在归档并写入收藏夹…': 'Archiving into bookmarks...',
     '归档失败（收藏夹已先自动备份，可手动还原）：\n%s':
         'Archive failed (bookmarks were backed up first, can restore manually):\n%s',
     '归档完成': 'Archive complete',
@@ -145,6 +142,13 @@ EN = {
         'when archiving/deleting.',
     '保存': 'Save',
     '取消': 'Cancel',
+    # ---- context menu / misc ----
+    '打开网址': 'Open URL',
+    '选择文件夹': 'Select folder',
+    '删除该网址（同时从 HTML 文件删除）': 'Delete URL (also remove from HTML file)',
+    '标记为正常（移除出失效名单）': 'Mark as OK (remove from dead list)',
+    '删除该网址（从浏览器收藏夹删除，自动备份）':
+        'Delete URL (remove from browser bookmarks, auto-backup)',
     '语言：': 'Language:',
     '中文': '中文',
     'English': 'English',
