@@ -9,6 +9,9 @@ on:
       - 'v*'
   workflow_dispatch:   # 也支持手动触发（仓库页面 Actions -> Run workflow）
 
+permissions:
+  contents: write   # 允许 Actions 创建/更新 Release（默认只读，会 403）
+
 jobs:
   build:
     strategy:
@@ -19,10 +22,10 @@ jobs:
             artifact: BookmarkChecker.exe
             args: --onefile --windowed --name BookmarkChecker --icon icon.ico gui.py
           - os: macos-latest
-            artifact: BookmarkChecker.app
+            artifact: BookmarkChecker-mac
             args: --onefile --windowed --name BookmarkChecker --icon icon.ico gui.py
           - os: ubuntu-latest
-            artifact: BookmarkChecker
+            artifact: BookmarkChecker-linux
             args: --onefile --windowed --name BookmarkChecker gui.py
 
     runs-on: ${{ matrix.os }}
@@ -49,6 +52,10 @@ jobs:
 
       - name: Build with PyInstaller
         run: pyinstaller --noconfirm --clean ${{ matrix.args }}
+
+      - name: Rename artifact for mac/linux
+        if: runner.os != 'Windows'
+        run: mv dist/BookmarkChecker dist/${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
