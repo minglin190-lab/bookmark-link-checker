@@ -4,6 +4,8 @@ import os, sys, json, queue, threading, datetime, webbrowser, subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import core
+import bm_lang as lang
+from bm_lang import tr
 
 DEFAULT_REPORT_DIR = os.path.join(os.path.expanduser('~'), 'Desktop')
 DEFAULT_BACKUP_DIR = core.BACKUP_DIR
@@ -52,7 +54,7 @@ def save_settings(d):
 
 # verdict -> (display text, tag)  tag: dead / weak / alive / archived
 DISPLAY = dict(core.VERDICT_INFO)
-DISPLAY['OK'] = ('能打开', 'alive')
+DISPLAY['OK'] = ('能打开', 'alive')  # translated via _dtext
 DISPLAY['BLOCKED'] = ('能打开（网站拦截自动访问，链接正常）', 'alive')
 DISPLAY['ARCHIVED'] = ('已归档', 'archived')
 DISPLAY['WAIT'] = ('检测中…', 'alive')
@@ -74,7 +76,7 @@ def row_tag(verdict):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('收藏夹链接检测')
+        self.title(tr('收藏夹链接检测'))
         self.geometry('1050x680')
         self.minsize(920, 580)
         try:
@@ -114,22 +116,22 @@ class App(tk.Tk):
     def _build_ui(self):
         top = ttk.Frame(self, padding=(12, 12, 12, 4))
         top.pack(fill='x')
-        ttk.Label(top, text='浏览器：').pack(side='left')
+        ttk.Label(top, text=tr('浏览器：')).pack(side='left')
         self.browser_var = tk.StringVar(value='Edge')
         self.browser_box = ttk.Combobox(top, textvariable=self.browser_var,
                                         values=['Edge', 'Chrome'],
                                         state='readonly', width=8)
         self.browser_box.pack(side='left', padx=(0, 14))
-        ttk.Label(top, text='范围：').pack(side='left')
-        self.scope_box = ttk.Combobox(top, values=['其他收藏夹', '全部收藏夹'],
+        ttk.Label(top, text=tr('范围：')).pack(side='left')
+        self.scope_box = ttk.Combobox(top, values=[tr('其他收藏夹'), tr('全部收藏夹')],
                                       state='readonly', width=10)
         self.scope_box.current(1)
         self.scope_box.pack(side='left', padx=(0, 14))
         self.browser_box.bind('<<ComboboxSelected>>', self._on_source_change)
         self.scope_box.bind('<<ComboboxSelected>>', self._on_source_change)
-        self.btn_start = ttk.Button(top, text='开始检测', command=self.start_check)
+        self.btn_start = ttk.Button(top, text=tr('开始检测'), command=self.start_check)
         self.btn_start.pack(side='left')
-        self.btn_stop = ttk.Button(top, text='停止', command=self.stop_check)
+        self.btn_stop = ttk.Button(top, text=tr('停止'), command=self.stop_check)
         self.btn_stop.pack(side='left', padx=(8, 0))
         self.btn_stop.state(['disabled'])
 
@@ -138,18 +140,18 @@ class App(tk.Tk):
         self.pb = ttk.Progressbar(prog, mode='determinate')
         self.pb.pack(side='left', fill='x', expand=True, padx=(0, 12))
         self.only_dead_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(prog, text='只看失效', variable=self.only_dead_var,
+        ttk.Checkbutton(prog, text=tr('只看失效'), variable=self.only_dead_var,
                         command=self._populate).pack(side='left', padx=(0, 12))
-        self.btn_import = ttk.Button(prog, text='导入 HTML 收藏夹…',
+        self.btn_import = ttk.Button(prog, text=tr('导入 HTML 收藏夹…'),
                                      command=self.import_html)
         self.btn_import.pack(side='left')
-        self.prog_lbl = ttk.Label(prog, text='待检测', width=12, anchor='e')
+        self.prog_lbl = ttk.Label(prog, text=tr('待检测'), width=12, anchor='e')
         self.prog_lbl.pack(side='left', padx=(10, 0))
 
         mid = ttk.Frame(self, padding=(12, 0, 12, 6))
         mid.pack(fill='both', expand=True)
         cols = ('status', 'name', 'folder', 'url')
-        heads = {'status': '状态', 'name': '名称', 'folder': '所在文件夹', 'url': '网址'}
+        heads = {'status': tr('状态'), 'name': tr('名称'), 'folder': tr('所在文件夹'), 'url': tr('网址')}
         widths = {'status': 200, 'name': 300, 'folder': 200, 'url': 330}
         self.tree = ttk.Treeview(mid, columns=cols, show='headings',
                                  selectmode='extended')
@@ -170,20 +172,20 @@ class App(tk.Tk):
 
         bottom = ttk.Frame(self, padding=(12, 2, 12, 8))
         bottom.pack(fill='x')
-        self.btn_recheck = ttk.Button(bottom, text='复检选中', command=self.recheck_selected)
+        self.btn_recheck = ttk.Button(bottom, text=tr('复检选中'), command=self.recheck_selected)
         self.btn_recheck.pack(side='left')
-        self.btn_report = ttk.Button(bottom, text='导出失效报告', command=self.export_report)
+        self.btn_report = ttk.Button(bottom, text=tr('导出失效报告'), command=self.export_report)
         self.btn_report.pack(side='left', padx=10)
-        self.btn_archive = ttk.Button(bottom, text='归档失效链接…', command=self.archive_dead)
+        self.btn_archive = ttk.Button(bottom, text=tr('归档失效链接…'), command=self.archive_dead)
         self.btn_archive.pack(side='left')
-        self.btn_settings = ttk.Button(bottom, text='设置…', command=self.open_settings)
+        self.btn_settings = ttk.Button(bottom, text=tr('设置…'), command=self.open_settings)
         self.btn_settings.pack(side='left', padx=10)
 
         status_row = ttk.Frame(self, padding=(12, 0, 12, 8))
         status_row.pack(fill='x')
-        self.status = tk.StringVar(value='就绪。点“开始检测”先跑一遍。')
+        self.status = tk.StringVar(value=tr('就绪。点“开始检测”先跑一遍。'))
         ttk.Label(status_row, textvariable=self.status, foreground='#455a64').pack(side='left')
-        ttk.Label(status_row, text='双击一行打开网址｜右键更多操作',
+        ttk.Label(status_row, text=tr('双击一行打开网址｜右键更多操作'),
                   foreground='#78909c').pack(side='right')
         self.action_buttons = [self.btn_start, self.btn_recheck,
                                self.btn_report, self.btn_archive,
@@ -205,7 +207,7 @@ class App(tk.Tk):
             return
         self.stop_event.set()
         self.btn_stop.state(['disabled'])
-        self.status.set('正在停止…已发出的网络请求要等几秒超时才断开，稍等一下。')
+        self.status.set(tr('正在停止…已发出的网络请求要等几秒超时才断开，稍等一下。'))
 
     def _poll(self):
         try:
@@ -241,13 +243,13 @@ class App(tk.Tk):
                     weak = sum(1 for r in self.rows if core.severity(r['verdict']) == 'weak')
                     skip = sum(1 for r in self.rows if r['verdict'] == 'SKIP')
                     n = len(self.rows) - skip
-                    self.prog_lbl.configure(text='已停止' if stopped else '完成')
+                    self.prog_lbl.configure(text=tr('已停止') if stopped else tr('完成'))
                     if stopped:
-                        self.status.set('已停止：检测了 %d 条，跳过 %d 条。'
-                                        '可再点“开始检测”重查，或选中几条用“复检选中”。'
-                                        % (n, skip))
+                        self.status.set(tr('已停止：检测了 %d 条，跳过 %d 条。'
+                                            '可再点“开始检测”重查，或选中几条用“复检选中”。')
+                                            % (n, skip))
                     else:
-                        self.status.set('检测完成：确定失效 %d 条，疑似问题 %d 条，正常 %d 条'
+                        self.status.set(tr('检测完成：确定失效 %d 条，疑似问题 %d 条，正常 %d 条')
                                         % (dead, weak, n - dead - weak))
                 elif kind == 'rechecked':
                     idxs, res, stopped, ep = ev[1], ev[2], ev[3], ev[4]
@@ -262,9 +264,9 @@ class App(tk.Tk):
                             got += 1
                     self._populate()
                     self._set_busy(False)
-                    self.prog_lbl.configure(text='已停止' if stopped else '完成')
-                    self.status.set('复检%s：更新了 %d 条。'
-                                    % ('已停止' if stopped else '完成', got))
+                    self.prog_lbl.configure(text=tr('已停止') if stopped else tr('完成'))
+                    self.status.set(tr('复检%s：更新了 %d 条。')
+                                    % (tr('已停止') if stopped else tr('完成'), got))
                 elif kind == 'archived':
                     bak, n, found = ev[1], ev[2], ev[3]
                     for r in self.rows:
@@ -272,16 +274,16 @@ class App(tk.Tk):
                             r['verdict'] = 'ARCHIVED'
                     self._populate()
                     self._set_busy(False)
-                    self.status.set('已归档 %d 条，备份：%s' % (found, bak))
+                    self.status.set(tr('已归档 %d 条，备份：%s') % (found, bak))
                     if messagebox.askyesno(
-                            '归档完成',
-                            '已把 %d 条失效链接移入收藏夹的“失效链接归档”文件夹。\n'
-                            '改动前自动备份在：\n%s\n\n现在打开备份文件夹吗？' % (found, bak)):
+                            tr('归档完成'),
+                            tr('已把 %d 条失效链接移入收藏夹的“失效链接归档”文件夹。\n'
+                               '改动前自动备份在：\n%s\n\n现在打开备份文件夹吗？') % (found, bak)):
                         open_folder(os.path.dirname(bak))
                 elif kind == 'error':
                     self._set_busy(False)
-                    self.status.set('出错')
-                    messagebox.showerror('出错', ev[1])
+                    self.status.set(tr('出错'))
+                    messagebox.showerror(tr('出错'), ev[1])
         except queue.Empty:
             pass
         self.after(80, self._poll)
@@ -319,7 +321,7 @@ class App(tk.Tk):
             self.rows = []
             self.rows_from_html = None
             self._populate()
-            self.status.set('已切换来源。点“开始检测”载入新的收藏夹。')
+            self.status.set(tr('已切换来源。点“开始检测”载入新的收藏夹。'))
 
     def start_check(self):
         if self.busy:
@@ -332,11 +334,11 @@ class App(tk.Tk):
                 bm = core.bookmark_path(self.browser_var.get())
                 _, items = core.load_items(bm, self._scope())
             except Exception as e:
-                messagebox.showerror('读取收藏夹失败',
-                                     '找不到收藏夹文件或读取失败：\n%s' % e)
+                messagebox.showerror(tr('读取收藏夹失败'),
+                                     tr('找不到收藏夹文件或读取失败：\n%s') % e)
                 return
             if not items:
-                messagebox.showinfo('没有链接', '这个范围内没有要检测的网址链接。')
+                messagebox.showinfo(tr('没有链接'), tr('这个范围内没有要检测的网址链接。'))
                 return
             self.rows = [dict(it, verdict='WAIT', code=None, err='') for it in items]
             self.rows_from_html = False
@@ -344,7 +346,7 @@ class App(tk.Tk):
         self._set_busy(True)
         self.pb.configure(maximum=len(self.rows), value=0)
         self.prog_lbl.configure(text='0 / %d' % len(self.rows))
-        self.status.set('正在检测 %d 条链接…' % len(self.rows))
+        self.status.set(tr('正在检测 %d 条链接…') % len(self.rows))
         self.epoch += 1
         threading.Thread(target=self._work_check, args=(self.epoch,),
                          daemon=True).start()
@@ -353,25 +355,25 @@ class App(tk.Tk):
         if self.busy:
             return
         path = filedialog.askopenfilename(
-            title='选择导出的收藏夹 HTML 文件',
-            filetypes=[('HTML 文件', '*.html *.htm'), ('所有文件', '*.*')])
+            title=tr('选择导出的收藏夹 HTML 文件'),
+            filetypes=[(tr('HTML 文件'), '*.html *.htm'), (tr('所有文件'), '*.*')])
         if not path:
             return
         try:
             items = core.load_html(path)
         except Exception as e:
-            messagebox.showerror('导入失败', '解析文件出错：\n%s' % e)
+            messagebox.showerror(tr('导入失败'), tr('解析文件出错：\n%s') % e)
             return
         if not items:
-            messagebox.showinfo('没有链接', '这个 HTML 文件里没有找到网址链接。')
+            messagebox.showinfo(tr('没有链接'), tr('这个 HTML 文件里没有找到网址链接。'))
             return
         self.rows = [dict(it, verdict='WAIT', code=None, err='') for it in items]
         self.rows_from_html = True
         self.html_path = path
         self._populate()
-        self.status.set('已从 HTML 导入 %d 条链接（%s）。点“开始检测”即可检测。'
+        self.status.set(tr('已从 HTML 导入 %d 条链接（%s）。点“开始检测”即可检测。')
                         % (len(items), os.path.basename(path)))
-        self.prog_lbl.configure(text='%d 条' % len(items))
+        self.prog_lbl.configure(text=tr('%d 条') % len(items))
 
     def _work_check(self, ep):
         urls = [r['url'] for r in self.rows]
@@ -385,20 +387,20 @@ class App(tk.Tk):
                     ('row_result', self.row_index[u], r, ep)))
             self.q.put(('checked', res, self.stop_event.is_set(), ep))
         except Exception as e:
-            self.q.put(('error', '检测出错：%s' % e, ep))
+            self.q.put(('error', tr('检测出错：%s') % e, ep))
 
     def recheck_selected(self):
         if self.busy:
             return
         sel = self.tree.selection()
         if not sel:
-            messagebox.showinfo('提示', '先在列表里选中要复检的行（按住 Ctrl 可多选）。')
+            messagebox.showinfo(tr('提示'), tr('先在列表里选中要复检的行（按住 Ctrl 可多选）。'))
             return
         idxs = sorted(int(s) for s in sel)
         self._set_busy(True)
         self.pb.configure(maximum=len(idxs), value=0)
         self.prog_lbl.configure(text='0 / %d' % len(idxs))
-        self.status.set('复检选中的 %d 条…' % len(idxs))
+        self.status.set(tr('复检选中的 %d 条…') % len(idxs))
         self.epoch += 1
         threading.Thread(target=self._work_recheck, args=(idxs, self.epoch),
                          daemon=True).start()
@@ -412,13 +414,13 @@ class App(tk.Tk):
                 stop_cb=self.stop_event.is_set)
             self.q.put(('rechecked', idxs, res, self.stop_event.is_set(), ep))
         except Exception as e:
-            self.q.put(('error', '复检出错：%s' % e, ep))
+            self.q.put(('error', tr('复检出错：%s') % e, ep))
 
     def export_report(self):
         dead = [r for r in self.rows if core.severity(r['verdict']) == 'dead']
         weak = [r for r in self.rows if core.severity(r['verdict']) == 'weak']
         if not dead and not weak:
-            messagebox.showinfo('没有失效链接', '当前结果里没有失效或疑似问题的链接。')
+            messagebox.showinfo(tr('没有失效链接'), tr('当前结果里没有失效或疑似问题的链接。'))
             return
         text = core.build_report(dead + weak)
         os.makedirs(self.report_dir, exist_ok=True)
@@ -426,8 +428,8 @@ class App(tk.Tk):
                             datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
         with open(path, 'w', encoding='utf-8-sig') as f:
             f.write(text)
-        self.status.set('报告已保存：%s' % path)
-        if messagebox.askyesno('报告已导出', '已保存到：\n%s\n\n现在打开所在文件夹吗？' % path):
+        self.status.set(tr('报告已保存：%s') % path)
+        if messagebox.askyesno(tr('报告已导出'), tr('已保存到：\n%s\n\n现在打开所在文件夹吗？') % path):
             open_folder(self.report_dir)
 
     def archive_dead(self):
@@ -440,32 +442,32 @@ class App(tk.Tk):
                         and r.get('src') == 'html')
         if not dead:
             if html_dead:
-                messagebox.showinfo('无法归档',
-                                    '失效链接都来自 HTML 导入（不在浏览器收藏夹里），'
-                                    '不能归档。\n可导出失效报告自己核对。')
+                messagebox.showinfo(tr('无法归档'),
+                                    tr('失效链接都来自 HTML 导入（不在浏览器收藏夹里），'
+                                       '不能归档。\n可导出失效报告自己核对。'))
             else:
-                messagebox.showinfo('没有可归档的链接', '列表里没有“确定失效”的链接。')
+                messagebox.showinfo(tr('没有可归档的链接'), tr('列表里没有“确定失效”的链接。'))
             return
-        extra = '\n（另有 %d 条来自 HTML 导入的失效项不能归档，已跳过）' % html_dead if html_dead else ''
+        extra = tr('\n（另有 %d 条来自 HTML 导入的失效项不能归档，已跳过）') % html_dead if html_dead else ''
         if not messagebox.askyesno(
-                '确认归档',
-                '将把 %d 条“确定失效”的链接移动到收藏夹的“失效链接归档”文件夹。\n'
-                '（超时、服务器报错等疑似问题不动；网址不删除，只是换位置）%s\n\n继续吗？'
+                tr('确认归档'),
+                tr('将把 %d 条“确定失效”的链接移动到收藏夹的“失效链接归档”文件夹。\n'
+                   '（超时、服务器报错等疑似问题不动；网址不删除，只是换位置）%s\n\n继续吗？')
                 % (len(dead), extra)):
             return
         if core.browser_running(browser):
             if not messagebox.askyesno(
-                    '%s 正在运行' % browser,
-                    '%s 正在运行，退出前它可能把改动覆盖回去。\n'
-                    '建议先完全退出 %s 再归档。\n\n仍要现在继续吗？' % (browser, browser)):
+                    tr('%s 正在运行') % browser,
+                    tr('%s 正在运行，退出前它可能把改动覆盖回去。\n'
+                       '建议先完全退出 %s 再归档。\n\n仍要现在继续吗？') % (browser, browser)):
                 return
         try:
             bm = core.bookmark_path(browser)
         except Exception as e:
-            messagebox.showerror('出错', str(e))
+            messagebox.showerror(tr('出错'), str(e))
             return
         self._set_busy(True)
-        self.status.set('正在归档并写入收藏夹…')
+        self.status.set(tr('正在归档并写入收藏夹…'))
         threading.Thread(target=self._work_archive,
                          args=(bm, [r['id'] for r in dead]), daemon=True).start()
 
@@ -474,7 +476,7 @@ class App(tk.Tk):
             bak, n, found = core.archive_links(bm, ids, backup_dir=self.backup_dir)
             self.q.put(('archived', bak, n, found))
         except Exception as e:
-            self.q.put(('error', '归档失败（收藏夹已先自动备份，可手动还原）：\n%s' % e))
+            self.q.put(('error', tr('归档失败（收藏夹已先自动备份，可手动还原）：\n%s') % e))
 
     def _open_url(self, _ev):
         sel = self.tree.selection()
@@ -492,18 +494,18 @@ class App(tk.Tk):
         r = self.rows[idx]
         menu = tk.Menu(self, tearoff=0)
         if r.get('src') == 'html':
-            menu.add_command(label='打开网址', command=lambda: self._open_url(None))
+            menu.add_command(label=tr('打开网址'), command=lambda: self._open_url(None))
             menu.add_separator()
-            menu.add_command(label='删除该网址（同时从 HTML 文件删除）',
+            menu.add_command(label=tr('删除该网址（同时从 HTML 文件删除）'),
                              command=lambda: self._del_html_row(idx))
-            menu.add_command(label='标记为正常（移除出失效名单）',
+            menu.add_command(label=tr('标记为正常（移除出失效名单）'),
                              command=lambda: self._mark_alive(idx))
         else:
-            menu.add_command(label='打开网址', command=lambda: self._open_url(None))
+            menu.add_command(label=tr('打开网址'), command=lambda: self._open_url(None))
             menu.add_separator()
-            menu.add_command(label='删除该网址（从浏览器收藏夹删除，自动备份）',
+            menu.add_command(label=tr('删除该网址（从浏览器收藏夹删除，自动备份）'),
                              command=lambda: self._del_browser_row(idx))
-            menu.add_command(label='标记为正常（移除出失效名单）',
+            menu.add_command(label=tr('标记为正常（移除出失效名单）'),
                              command=lambda: self._mark_alive(idx))
         try:
             menu.tk_popup(ev.x_root, ev.y_root)
@@ -514,50 +516,50 @@ class App(tk.Tk):
         r = self.rows[idx]
         browser = self.browser_var.get()
         if not messagebox.askyesno(
-                '确认删除',
-                '确定要从浏览器收藏夹删除这条链接吗？\n\n%s\n%s'
+                tr('确认删除'),
+                tr('确定要从浏览器收藏夹删除这条链接吗？\n\n%s\n%s')
                 % (r['name'], r['url'])):
             return
         if core.browser_running(browser):
             if not messagebox.askyesno(
-                    '%s 正在运行' % browser,
-                    '%s 正在运行，退出前它可能把改动覆盖回去。\n'
-                    '建议先完全退出 %s 再删除。\n\n仍要现在继续吗？' % (browser, browser)):
+                    tr('%s 正在运行') % browser,
+                    tr('%s 正在运行，退出前它可能把改动覆盖回去。\n'
+                       '建议先完全退出 %s 再删除。\n\n仍要现在继续吗？') % (browser, browser)):
                 return
         try:
             bm = core.bookmark_path(browser)
         except Exception as e:
-            messagebox.showerror('出错', str(e))
+            messagebox.showerror(tr('出错'), str(e))
             return
         try:
             bak, n, _found = core.archive_links(bm, [r['id']], mode='delete',
                                                 backup_dir=self.backup_dir)
         except Exception as e:
-            messagebox.showerror('删除失败', '删除失败（收藏夹已自动备份）：\n%s' % e)
+            messagebox.showerror(tr('删除失败'), tr('删除失败（收藏夹已自动备份）：\n%s') % e)
             return
         del self.rows[idx]
         self._populate()
-        self.status.set('已删除 %d 条，备份：%s' % (n, bak))
+        self.status.set(tr('已删除 %d 条，备份：%s') % (n, bak))
 
     def _del_html_row(self, idx):
         r = self.rows[idx]
         path = getattr(self, 'html_path', None)
         if not path:
-            messagebox.showerror('出错', '找不到导入的 HTML 文件路径。')
+            messagebox.showerror(tr('出错'), tr('找不到导入的 HTML 文件路径。'))
             return
         if not messagebox.askyesno(
-                '确认删除',
-                '确定要从导入的 HTML 文件删除这条链接吗？\n\n%s\n%s'
+                tr('确认删除'),
+                tr('确定要从导入的 HTML 文件删除这条链接吗？\n\n%s\n%s')
                 % (r['name'], r['url'])):
             return
         try:
             n = core.remove_from_html(path, [r['url']])
         except Exception as e:
-            messagebox.showerror('删除失败', '从 HTML 删除失败：\n%s' % e)
+            messagebox.showerror(tr('删除失败'), tr('从 HTML 删除失败：\n%s') % e)
             return
         del self.rows[idx]
         self._populate()
-        self.status.set('已从 HTML 删除 %d 条链接。' % n)
+        self.status.set(tr('已从 HTML 删除 %d 条链接。') % n)
 
     def _mark_alive(self, idx):
         r = self.rows[idx]
@@ -565,7 +567,7 @@ class App(tk.Tk):
         r['code'] = None
         r['err'] = ''
         self._populate()
-        self.status.set('已把「%s」标记为正常（仅本次显示，不改收藏夹）。' % r['name'])
+        self.status.set(tr('已把「%s」标记为正常（仅本次显示，不改收藏夹）。') % r['name'])
 
     # ---------------- settings ----------------
     def open_settings(self):
@@ -573,7 +575,7 @@ class App(tk.Tk):
             return
         self._settings_open = True
         win = tk.Toplevel(self)
-        win.title('设置 - 文件保存位置')
+        win.title(tr('设置 - 文件保存位置'))
         win.transient(self)
         win.grab_set()
         win.resizable(False, False)
@@ -583,33 +585,47 @@ class App(tk.Tk):
         backup_var = tk.StringVar(value=self.backup_dir)
 
         def browse(var):
-            d = filedialog.askdirectory(parent=win, title='选择文件夹',
+            d = filedialog.askdirectory(parent=win, title=tr('选择文件夹'),
                                         initialdir=var.get() or os.path.expanduser('~'))
             if d:
                 var.set(d)
 
-        ttk.Label(frm, text='失效报告保存位置：').grid(row=0, column=0, sticky='w')
+        ttk.Label(frm, text=tr('失效报告保存位置：')).grid(row=0, column=0, sticky='w')
         ttk.Entry(frm, textvariable=report_var, width=46).grid(row=0, column=1, padx=8)
-        ttk.Button(frm, text='浏览…',
+        ttk.Button(frm, text=tr('浏览…'),
                    command=lambda: browse(report_var)).grid(row=0, column=2)
 
-        ttk.Label(frm, text='归档/删除的备份位置：').grid(row=1, column=0, sticky='w', pady=(10, 0))
+        ttk.Label(frm, text=tr('归档/删除的备份位置：')).grid(row=1, column=0, sticky='w', pady=(10, 0))
         ttk.Entry(frm, textvariable=backup_var, width=46).grid(row=1, column=1, padx=8, pady=(10, 0))
-        ttk.Button(frm, text='浏览…',
+        ttk.Button(frm, text=tr('浏览…'),
                    command=lambda: browse(backup_var)).grid(row=1, column=2, pady=(10, 0))
 
-        ttk.Label(frm, text='报告：导出报告时保存到的文件夹。\n备份：归档/删除收藏夹时自动备份收藏夹文件的位置。',
+        ttk.Label(frm, text=tr('报告：导出报告时保存到的文件夹。\n备份：归档/删除收藏夹时自动备份收藏夹文件的位置。'),
                   foreground='#78909c').grid(row=2, column=0, columnspan=3, sticky='w', pady=(10, 0))
+
+        lang_row = ttk.Frame(frm)
+        lang_row.grid(row=3, column=0, columnspan=3, sticky='w', pady=(10, 0))
+        ttk.Label(lang_row, text=tr('语言：')).pack(side='left')
+        lang_var = tk.StringVar(value=lang.current_lang())
+        lang_box = ttk.Combobox(lang_row, textvariable=lang_var, values=['中文', 'English'],
+                                state='readonly', width=10)
+        lang_box.pack(side='left', padx=(4, 0))
+        ttk.Label(lang_row, text=tr('语言修改后需重启应用生效。'),
+                  foreground='#78909c').pack(side='left', padx=(10, 0))
 
         def save():
             rd = report_var.get().strip()
             bd = backup_var.get().strip()
+            lg = 'zh' if lang_var.get() != 'English' else 'en'
             if rd:
                 self.report_dir = rd
             if bd:
                 self.backup_dir = bd
-            save_settings({'report_dir': self.report_dir, 'backup_dir': self.backup_dir})
-            self.status.set('设置已保存：报告→%s；备份→%s' % (self.report_dir, self.backup_dir))
+            settings = {'report_dir': self.report_dir, 'backup_dir': self.backup_dir,
+                        'lang': lg}
+            save_settings(settings)
+            lang.set_lang(lg)
+            self.status.set(tr('设置已保存：报告→%s；备份→%s') % (self.report_dir, self.backup_dir))
             self._settings_open = False
             win.destroy()
 
@@ -618,14 +634,14 @@ class App(tk.Tk):
             win.destroy()
 
         btns = ttk.Frame(frm)
-        btns.grid(row=3, column=0, columnspan=3, sticky='e', pady=(14, 0))
-        ttk.Button(btns, text='保存', command=save).pack(side='left')
-        ttk.Button(btns, text='取消', command=cancel).pack(side='left', padx=8)
+        btns.grid(row=4, column=0, columnspan=3, sticky='e', pady=(14, 0))
+        ttk.Button(btns, text=tr('保存'), command=save).pack(side='left')
+        ttk.Button(btns, text=tr('取消'), command=cancel).pack(side='left', padx=8)
         win.protocol('WM_DELETE_WINDOW', cancel)
 
     def _close(self):
-        if self.busy and not messagebox.askokcancel('正在运行',
-                                                    '任务还在进行中，确定要退出吗？'):
+        if self.busy and not messagebox.askokcancel(tr('正在运行'),
+                                                    tr('任务还在进行中，确定要退出吗？')):
             return
         self.destroy()
 
