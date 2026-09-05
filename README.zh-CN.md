@@ -6,7 +6,15 @@
 
 ## 界面截图
 
-![Screenshot](screenshot.png)
+**中文界面：**
+
+![Chinese UI](screenshot_zh.png)
+
+**English UI:**
+
+![English UI](screenshot_en.png)
+
+> 支持**即时切换语言**（设置 → 语言 → 中文/English），无需重启。
 
 ## 功能
 

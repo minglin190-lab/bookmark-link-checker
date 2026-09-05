@@ -14,9 +14,15 @@ Works on **Windows / macOS / Linux**. Free, open source, no installation require
 
 ## Screenshot
 
-![Screenshot](screenshot.png)
+**English UI:**
 
-> Note: the UI is currently in **Simplified Chinese** (an English UI is planned). The app itself is easy to use — pick a browser, click **开始检测 (Start Check)**, and results appear live.
+![English UI](screenshot_en.png)
+
+**中文界面 (Chinese UI):**
+
+![Chinese UI](screenshot_zh.png)
+
+> The app supports **instant language switching** (Settings → Language → 中文/English), no restart needed.
 
 ## Features
 
