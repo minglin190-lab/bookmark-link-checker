@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Core logic for bookmark link checker / archiver. No GUI here.
 # ASCII-only code comments; Chinese only as string data.
-import json, os, re, shutil, subprocess, uuid, datetime, time
+import json, os, sys, re, shutil, subprocess, uuid, datetime, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -14,9 +14,26 @@ BACKUP_DIR = os.path.join(_USER_HOME, 'Documents',
 ARCHIVE_FOLDER_NAME = '\u5931\u6548\u94fe\u63a5\u5f52\u6863'  # 失效链接归档
 
 BROWSERS = {
-    'Edge': r'{user}\Microsoft\Edge\User Data\Default\Bookmarks',
-    'Chrome': r'{user}\Google\Chrome\User Data\Default\Bookmarks',
+    'Edge': {
+        'win': r'{user}\Microsoft\Edge\User Data\Default\Bookmarks',
+        'mac': r'{user}/Library/Application Support/Microsoft Edge/Default/Bookmarks',
+        'linux': r'{user}/.config/microsoft-edge/Default/Bookmarks',
+    },
+    'Chrome': {
+        'win': r'{user}\Google\Chrome\User Data\Default\Bookmarks',
+        'mac': r'{user}/Library/Application Support/Google/Chrome/Default/Bookmarks',
+        'linux': r'{user}/.config/google-chrome/Default/Bookmarks',
+    },
 }
+
+
+def _os_key():
+    if sys.platform == 'darwin':
+        return 'mac'
+    if sys.platform.startswith('linux'):
+        return 'linux'
+    return 'win'
+
 
 UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0')
@@ -44,9 +61,12 @@ FINAL_GOOD = {'OK', 'BLOCKED', 'DEAD_404', 'DNS_FAIL'}
 
 
 def bookmark_path(browser):
-    tpl = BROWSERS[browser]
-    base = os.environ.get('LOCALAPPDATA', os.path.join(_USER_HOME, 'AppData', 'Local'))
-    return tpl.format(user=base)
+    tpl = BROWSERS[browser][_os_key()]
+    if sys.platform == 'win32':
+        base = os.environ.get('LOCALAPPDATA',
+                              os.path.join(_USER_HOME, 'AppData', 'Local'))
+        return tpl.format(user=base)
+    return tpl.format(user=_USER_HOME)
 
 
 def walk_bookmarks(data, scope):
@@ -365,12 +385,25 @@ def check_all(urls, workers, progress_cb=None, stop_cb=None, result_cb=None):
 
 
 def browser_running(browser):
-    exe = 'msedge.exe' if browser == 'Edge' else 'chrome.exe'
+    if sys.platform == 'win32':
+        exe = 'msedge.exe' if browser == 'Edge' else 'chrome.exe'
+        try:
+            r = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq %s' % exe],
+                               capture_output=True, text=True, timeout=15,
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            return exe.lower() in (r.stdout or '').lower()
+        except Exception:
+            return True  # assume running on failure, safer
+    # mac / linux: use pgrep with process name patterns
+    pats = ['Microsoft Edge', 'google chrome', 'chromium'] if browser == 'Edge' else \
+           ['google chrome', 'chromium', 'chrome']
     try:
-        r = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq %s' % exe],
-                           capture_output=True, text=True, timeout=15,
-                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-        return exe.lower() in (r.stdout or '').lower()
+        for pat in pats:
+            r = subprocess.run(['pgrep', '-f', pat], capture_output=True,
+                               text=True, timeout=15)
+            if r.returncode == 0 and (r.stdout or '').strip():
+                return True
+        return False
     except Exception:
         return True  # assume running on failure, safer
 

@@ -1,12 +1,25 @@
 # -*- coding: utf-8 -*-
 # GUI for the bookmark link checker / archiver (tkinter, no extra deps).
-import os, sys, json, queue, threading, datetime, webbrowser
+import os, sys, json, queue, threading, datetime, webbrowser, subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import core
 
 DEFAULT_REPORT_DIR = os.path.join(os.path.expanduser('~'), 'Desktop')
 DEFAULT_BACKUP_DIR = core.BACKUP_DIR
+
+
+def open_folder(path):
+    """Open a folder in the platform's file manager (works on Win/Mac/Linux)."""
+    try:
+        if sys.platform == 'win32':
+            os.startfile(path)
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', path])
+        else:
+            subprocess.Popen(['xdg-open', path])
+    except Exception:
+        pass
 
 
 def _exe_dir():
@@ -264,7 +277,7 @@ class App(tk.Tk):
                             '归档完成',
                             '已把 %d 条失效链接移入收藏夹的“失效链接归档”文件夹。\n'
                             '改动前自动备份在：\n%s\n\n现在打开备份文件夹吗？' % (found, bak)):
-                        os.startfile(os.path.dirname(bak))
+                        open_folder(os.path.dirname(bak))
                 elif kind == 'error':
                     self._set_busy(False)
                     self.status.set('出错')
@@ -415,7 +428,7 @@ class App(tk.Tk):
             f.write(text)
         self.status.set('报告已保存：%s' % path)
         if messagebox.askyesno('报告已导出', '已保存到：\n%s\n\n现在打开所在文件夹吗？' % path):
-            os.startfile(self.report_dir)
+            open_folder(self.report_dir)
 
     def archive_dead(self):
         if self.busy:

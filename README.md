@@ -1,51 +1,64 @@
-# 收藏夹链接检测工具 (Bookmark Link Checker)
+# Bookmark Link Checker
 
-绿色免安装的浏览器收藏夹失效链接检测工具，支持 Edge / Chrome，纯本地运行，不上传任何数据。
+[**中文说明 / Chinese**](README.zh-CN.md)
 
-## 功能
+A green, portable browser bookmark dead-link checker for **Edge / Chrome**. Runs fully locally — your bookmarks never leave your machine.
 
-- **一键检测**：自动读取 Edge / Chrome 收藏夹（或导入的 HTML 书签文件），32 线程并发检测，边检测边实时显示结果，不用等全部跑完
-- **三档判定**：
-  - 🔴 **确定失效**：页面 404、域名不存在、连接不上、证书打不开
-  - 🟡 **疑似失效**：超时、服务器报错（可能是反爬拦截或网络波动，网页里可能能开）
-  - ⚪ **能打开**：返回正常，或被网站拦截自动访问（403/401 等，链接本身正常）
-- **导入 HTML 收藏夹**：支持浏览器导出的 bookmarks.html（嵌套文件夹 / UTF-8 / GBK 编码），导入后可单独检测
-- **右键操作**（检测结果列表）：
-  - 双击 / 右键「打开网址」→ 浏览器打开确认
-  - 「删除该网址」→ 浏览器来源从收藏夹删除（自动备份）；HTML 来源同步从 HTML 文件删除
-  - 「标记为正常」→ 误判时移出失效名单
-- **一键归档**：把确定失效的链接移动到收藏夹的「失效链接归档」文件夹（改动前自动备份）
-- **导出报告**：生成失效链接清单保存到桌面
-- **复检选中**：对可疑链接单独重新检测
-- **设置**：自定义报告和备份的保存位置
+Works on **Windows / macOS / Linux**.
 
-## 使用方法
+## Features
 
-Windows 直接双击 `BookmarkChecker.exe` 即可使用，无需安装任何环境。
+- **One-click check**: reads Edge / Chrome bookmarks (or an imported HTML bookmarks file), checks with 32 threads in parallel, and shows results **live as they finish** — no need to wait for everything to complete
+- **Three-tier verdict**:
+  - 🔴 **Dead**: HTTP 404, domain does not exist, connection refused, certificate failure
+  - 🟡 **Suspicious**: timeout, server error (may be anti-bot blocking or network fluctuation — the page may still open in a browser)
+  - ⚪ **Alive**: normal response, or blocked by the site (403/401 etc. — the link itself is fine)
+- **Import HTML bookmarks**: supports browser-exported `bookmarks.html` (nested folders, UTF-8 / GBK encodings)
+- **Right-click actions** (on any result row):
+  - Double-click / right-click "Open URL" → open in browser to verify
+  - "Delete URL" → removes it from browser bookmarks (auto-backup first); for HTML-imported items, removes it from the HTML file too
+  - "Mark as OK" → remove a false positive from the dead list
+- **One-click archive**: move dead links into a "失效链接归档" (dead links archive) folder in your bookmarks (auto-backup before any change)
+- **Export report**: save a dead-link report to your Desktop
+- **Re-check selected**: re-test specific links individually
+- **Settings**: customize where reports and backups are saved
 
-也可自行打包（需 Python 3 + requests + PyInstaller）：
+## Usage
 
+**Windows**: download `BookmarkChecker.exe` from [Releases](https://github.com/minglin190-lab/bookmark-link-checker/releases), double-click and run. No installation needed.
+
+**macOS / Linux**: run from source (Python 3 + `requests` required):
+
+```bash
+git clone https://github.com/minglin190-lab/bookmark-link-checker.git
+cd bookmark-link-checker
+pip install requests
+python gui.py
 ```
+
+**Build a standalone executable** (Windows, requires PyInstaller):
+
+```bash
 pyinstaller --noconfirm --onefile --windowed --icon icon.ico --name BookmarkChecker gui.py
 ```
 
-## 判定逻辑说明
+## How verdicts work
 
-工具通过 HTTP 请求判断网址是否可访问，并做了针对误判的加固：
+The tool probes each URL over HTTP, with hardening against false positives:
 
-- 域名是否存在会做**独立 DNS 二次校验**（`socket.getaddrinfo`），避免网络抖动误杀
-- 连接失败时先试 HEAD 请求、再试长超时 GET，**反爬网站切断脚本请求**不会被直接判死
-- 超时、服务器报错等**不可靠信号一律归为"疑似"**（黄色），不标死
-- 只有 404 和域名确认不存在等**可靠信号**才标"确定失效"（红色）
+- Domain existence is **independently re-verified with DNS** (`socket.getaddrinfo`) to avoid blaming a live site for a transient DNS wobble
+- On connection failure it retries with HEAD first, then a longer-timeout GET — **anti-bot sites that cut off scripted requests are not declared dead**
+- Timeouts, server errors and other unreliable signals are always downgraded to "suspicious" (yellow), never "dead"
+- Only reliable signals (HTTP 404, confirmed missing domain) are marked "dead" (red)
 
-**局限**：工具只能检测"网址通不通"，无法判断"内容是否变质"（如网站还在但内容已删除、域名到期变成广告页等），这类需要人工点开确认。检测依赖网络环境，少数情况下可能有误判，以人工确认结果为准。
+**Limitations**: the tool can only tell whether a URL is reachable — it cannot detect "content rot" (e.g. the site is still up but the article is gone, or an expired domain now shows ads). Those need manual verification. Detection depends on your network environment; occasional false positives are possible — always confirm the suspicious ones manually.
 
-## 隐私说明
+## Privacy
 
-- 完全本地运行，收藏夹数据不上传任何服务器
-- 备份文件保存在 `我的文档\收藏夹链接检测备份`
-- 报告默认保存到桌面（可在设置中修改）
+- 100% local: bookmarks never leave your machine
+- Backups are saved to `Documents/收藏夹链接检测备份` (configurable in Settings)
+- Reports default to your Desktop (configurable in Settings)
 
-## 开源协议
+## License
 
 [MIT License](LICENSE)
