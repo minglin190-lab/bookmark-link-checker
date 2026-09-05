@@ -2,9 +2,15 @@
 
 [**中文说明 / Chinese**](README.zh-CN.md)
 
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
+![Python](https://img.shields.io/badge/python-3.8%2B-green)
+![License](https://img.shields.io/github/license/minglin190-lab/bookmark-link-checker)
+![Stars](https://img.shields.io/github/stars/minglin190-lab/bookmark-link-checker)
+![Downloads](https://img.shields.io/github/downloads/minglin190-lab/bookmark-link-checker/total)
+
 A green, portable browser bookmark dead-link checker for **Edge / Chrome**. Runs fully locally — your bookmarks never leave your machine.
 
-Works on **Windows / macOS / Linux**.
+Works on **Windows / macOS / Linux**. Free, open source, no installation required.
 
 ## Features
 
