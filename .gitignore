@@ -1,0 +1,15 @@
+# build artifacts
+build/
+dist/
+__pycache__/
+*.pyc
+
+# backups
+*.bak
+icon_old.ico
+icon_new.png
+icon_src.jpg
+
+# user config (local only, not for distribution)
+settings.json
+gui_crash.log
