@@ -56,6 +56,7 @@ EN = {
     '已把「%s」标记为正常（仅本次显示，不改收藏夹）。':
         'Marked "%s" as OK (display only; bookmarks unchanged).',
     '设置已保存：报告→%s；备份→%s': 'Settings saved: report->%s; backup->%s',
+    '语言已更改，立即生效。': 'Language changed - applied now.',
 
     # ---- verdict display ----
     '能打开': 'OK',
@@ -148,7 +149,7 @@ EN = {
     '中文': '中文',
     'English': 'English',
     '语言修改后需重启应用生效。': 'Language change takes effect after restarting the app.',
-    '保存后应用将自动重启以生效。': 'The app will restart automatically to apply the change.',
+    '重启应用后生效。': 'Takes effect after restarting the app.',
 }
 
 

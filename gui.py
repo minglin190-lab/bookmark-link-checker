@@ -13,6 +13,12 @@ DEFAULT_BACKUP_DIR = core.BACKUP_DIR
 
 def open_folder(path):
     """Open a folder in the platform's file manager (works on Win/Mac/Linux)."""
+    if not path or not os.path.isdir(path):
+        # guard against empty/invalid paths (would pop 'Windows cannot find \\')
+        try:
+            path = os.path.dirname(path) if path else os.path.expanduser('~')
+        except Exception:
+            path = os.path.expanduser('~')
     try:
         if sys.platform == 'win32':
             os.startfile(path)
@@ -46,11 +52,22 @@ def load_settings():
 
 
 def save_settings(d):
+    # atomic write: write to a temp file then replace, so a crash mid-write
+    # (e.g. app restarting) never leaves a half-written settings.json
     try:
-        with open(config_path(), 'w', encoding='utf-8') as f:
+        path = config_path()
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
             json.dump(d, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
     except Exception:
-        pass
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(d, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
 # verdict -> (display text, tag)  tag: dead / weak / alive / archived
 DISPLAY = dict(core.VERDICT_INFO)
@@ -93,6 +110,7 @@ class App(tk.Tk):
         self.settings = load_settings()
         self.report_dir = self.settings.get('report_dir') or DEFAULT_REPORT_DIR
         self.backup_dir = self.settings.get('backup_dir') or DEFAULT_BACKUP_DIR
+        self._i18n = []  # (widget, chinese-key) pairs for runtime language switch
 
         self._build_style()
         self._build_ui()
@@ -114,24 +132,32 @@ class App(tk.Tk):
         style.configure('TCombobox', padding=4)
 
     def _build_ui(self):
+        self._i18n = []
+        self._heading_keys = {'status': '状态', 'name': '名称',
+                              'folder': '所在文件夹', 'url': '网址'}
+
+        def reg(w, key):
+            self._i18n.append((w, key))
+            return w
+
         top = ttk.Frame(self, padding=(12, 12, 12, 4))
         top.pack(fill='x')
-        ttk.Label(top, text=tr('浏览器：')).pack(side='left')
+        reg(ttk.Label(top, text=tr('浏览器：')), '浏览器：').pack(side='left')
         self.browser_var = tk.StringVar(value='Edge')
         self.browser_box = ttk.Combobox(top, textvariable=self.browser_var,
                                         values=['Edge', 'Chrome'],
                                         state='readonly', width=8)
         self.browser_box.pack(side='left', padx=(0, 14))
-        ttk.Label(top, text=tr('范围：')).pack(side='left')
+        reg(ttk.Label(top, text=tr('范围：')), '范围：').pack(side='left')
         self.scope_box = ttk.Combobox(top, values=[tr('其他收藏夹'), tr('全部收藏夹')],
                                       state='readonly', width=10)
         self.scope_box.current(1)
         self.scope_box.pack(side='left', padx=(0, 14))
         self.browser_box.bind('<<ComboboxSelected>>', self._on_source_change)
         self.scope_box.bind('<<ComboboxSelected>>', self._on_source_change)
-        self.btn_start = ttk.Button(top, text=tr('开始检测'), command=self.start_check)
+        self.btn_start = reg(ttk.Button(top, text=tr('开始检测'), command=self.start_check), '开始检测')
         self.btn_start.pack(side='left')
-        self.btn_stop = ttk.Button(top, text=tr('停止'), command=self.stop_check)
+        self.btn_stop = reg(ttk.Button(top, text=tr('停止'), command=self.stop_check), '停止')
         self.btn_stop.pack(side='left', padx=(8, 0))
         self.btn_stop.state(['disabled'])
 
@@ -140,10 +166,10 @@ class App(tk.Tk):
         self.pb = ttk.Progressbar(prog, mode='determinate')
         self.pb.pack(side='left', fill='x', expand=True, padx=(0, 12))
         self.only_dead_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(prog, text=tr('只看失效'), variable=self.only_dead_var,
-                        command=self._populate).pack(side='left', padx=(0, 12))
-        self.btn_import = ttk.Button(prog, text=tr('导入 HTML 收藏夹…'),
-                                     command=self.import_html)
+        reg(ttk.Checkbutton(prog, text=tr('只看失效'), variable=self.only_dead_var,
+                            command=self._populate), '只看失效').pack(side='left', padx=(0, 12))
+        self.btn_import = reg(ttk.Button(prog, text=tr('导入 HTML 收藏夹…'),
+                                         command=self.import_html), '导入 HTML 收藏夹…')
         self.btn_import.pack(side='left')
         self.prog_lbl = ttk.Label(prog, text=tr('待检测'), width=12, anchor='e')
         self.prog_lbl.pack(side='left', padx=(10, 0))
@@ -151,12 +177,11 @@ class App(tk.Tk):
         mid = ttk.Frame(self, padding=(12, 0, 12, 6))
         mid.pack(fill='both', expand=True)
         cols = ('status', 'name', 'folder', 'url')
-        heads = {'status': tr('状态'), 'name': tr('名称'), 'folder': tr('所在文件夹'), 'url': tr('网址')}
         widths = {'status': 200, 'name': 300, 'folder': 200, 'url': 330}
         self.tree = ttk.Treeview(mid, columns=cols, show='headings',
                                  selectmode='extended')
         for c in cols:
-            self.tree.heading(c, text=heads[c])
+            self.tree.heading(c, text=tr(self._heading_keys[c]))
             self.tree.column(c, width=widths[c], anchor='w',
                              stretch=(c in ('name', 'url')))
         vs = ttk.Scrollbar(mid, orient='vertical', command=self.tree.yview)
@@ -172,24 +197,57 @@ class App(tk.Tk):
 
         bottom = ttk.Frame(self, padding=(12, 2, 12, 8))
         bottom.pack(fill='x')
-        self.btn_recheck = ttk.Button(bottom, text=tr('复检选中'), command=self.recheck_selected)
+        self.btn_recheck = reg(ttk.Button(bottom, text=tr('复检选中'), command=self.recheck_selected), '复检选中')
         self.btn_recheck.pack(side='left')
-        self.btn_report = ttk.Button(bottom, text=tr('导出失效报告'), command=self.export_report)
+        self.btn_report = reg(ttk.Button(bottom, text=tr('导出失效报告'), command=self.export_report), '导出失效报告')
         self.btn_report.pack(side='left', padx=10)
-        self.btn_archive = ttk.Button(bottom, text=tr('归档失效链接…'), command=self.archive_dead)
+        self.btn_archive = reg(ttk.Button(bottom, text=tr('归档失效链接…'), command=self.archive_dead), '归档失效链接…')
         self.btn_archive.pack(side='left')
-        self.btn_settings = ttk.Button(bottom, text=tr('设置…'), command=self.open_settings)
+        self.btn_settings = reg(ttk.Button(bottom, text=tr('设置…'), command=self.open_settings), '设置…')
         self.btn_settings.pack(side='left', padx=10)
 
         status_row = ttk.Frame(self, padding=(12, 0, 12, 8))
         status_row.pack(fill='x')
         self.status = tk.StringVar(value=tr('就绪。点“开始检测”先跑一遍。'))
         ttk.Label(status_row, textvariable=self.status, foreground='#455a64').pack(side='left')
-        ttk.Label(status_row, text=tr('双击一行打开网址｜右键更多操作'),
-                  foreground='#78909c').pack(side='right')
+        reg(ttk.Label(status_row, text=tr('双击一行打开网址｜右键更多操作'),
+                  foreground='#78909c'), '双击一行打开网址｜右键更多操作').pack(side='right')
         self.action_buttons = [self.btn_start, self.btn_recheck,
                                self.btn_report, self.btn_archive,
                                self.btn_import]
+
+    def _apply_lang(self):
+        # refresh all registered widget texts immediately (runtime switch)
+        for w, key in self._i18n:
+            try:
+                w.configure(text=tr(key))
+            except Exception:
+                pass
+        # scope combobox values
+        try:
+            cur_idx = self.scope_box.current()
+            self.scope_box.configure(values=[tr('其他收藏夹'), tr('全部收藏夹')])
+            if cur_idx >= 0:
+                self.scope_box.current(cur_idx)
+        except Exception:
+            pass
+        # tree headings
+        try:
+            for c, key in self._heading_keys.items():
+                self.tree.heading(c, text=tr(key))
+        except Exception:
+            pass
+        # window title
+        try:
+            self.title(tr('收藏夹链接检测'))
+        except Exception:
+            pass
+        # status text - retranslate current message if it is a known key
+        try:
+            cur = self.status.get()
+            self.status.set(tr(cur))
+        except Exception:
+            pass
 
     # ---------------- helpers ----------------
     def _scope(self):
@@ -610,7 +668,7 @@ class App(tk.Tk):
         lang_box = ttk.Combobox(lang_row, textvariable=lang_var, values=['中文', 'English'],
                                 state='readonly', width=10)
         lang_box.pack(side='left', padx=(4, 0))
-        ttk.Label(lang_row, text=tr('保存后应用将自动重启以生效。'),
+        ttk.Label(lang_row, text=tr('重启应用后生效。'),
                   foreground='#78909c').pack(side='left', padx=(10, 0))
 
         def save():
@@ -629,22 +687,9 @@ class App(tk.Tk):
             self._settings_open = False
             win.destroy()
             if changed:
-                # restart the app so all UI text re-renders in the new language.
-                # Use after() so the restart happens outside the callback stack.
-                def _restart():
-                    try:
-                        self.destroy()
-                    except Exception:
-                        pass
-                    try:
-                        import sys as _sys
-                        if getattr(_sys, 'frozen', False):
-                            os.startfile(_sys.executable)
-                        else:
-                            subprocess.Popen([_sys.executable, os.path.abspath(__file__)])
-                    except Exception:
-                        pass
-                self.after(150, _restart)
+                # apply new language to all widgets immediately
+                self._apply_lang()
+                self.status.set(tr('语言已更改，立即生效。'))
             else:
                 self.status.set(tr('设置已保存：报告→%s；备份→%s') % (self.report_dir, self.backup_dir))
 
@@ -666,12 +711,35 @@ class App(tk.Tk):
 
 
 def main():
+    import ctypes
+    mutex = None
+    if sys.platform == 'win32':
+        try:
+            kernel32 = ctypes.windll.kernel32
+            mutex = kernel32.CreateMutexW(None, False, 'BookmarkChecker_SingleInstance')
+            if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+                # another instance is running; bring its window forward instead
+                # of silently exiting, so the user isn't confused.
+                try:
+                    hwnd = kernel32.FindWindowW(None, None)
+                    kernel32.SetForegroundWindow(hwnd)
+                except Exception:
+                    pass
+                return
+        except Exception:
+            pass
     try:
         from ctypes import windll
         windll.shcore.SetProcessDpiAwareness(1)
     except Exception:
         pass
-    App().mainloop()
+    app = App()
+    app.mainloop()
+    if mutex:
+        try:
+            ctypes.windll.kernel32.CloseHandle(mutex)
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':
